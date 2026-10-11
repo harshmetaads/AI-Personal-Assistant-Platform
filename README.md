@@ -1,76 +1,192 @@
-# Personal AI Assistant
+# 🎯 Personal AI Secretary Platform
 
-A personal AI assistant project designed for personal use. It supports:
+**Your all-in-one AI assistant for productivity, planning, writing, and automation.**
 
-- Local free mode with Ollama
-- OpenAI, Gemini, and Claude providers
-- Multilingual chat experience
-- Easy setup for daily personal productivity
+A full-featured personal AI workspace combining chat, task management, note-taking, daily planning, and automation suggestions — powered by free local AI (Ollama) or optional cloud providers.
 
-## Features
+## ✨ Features
 
-- Chat interface with provider selector
-- Quick actions such as planning, email writing, schedules
-- Clear support for Hindi/English and flexible language use
-- Works locally with a free model via Ollama
-- Optional cloud provider connection with API keys
+### 📊 Dashboard
+- Real-time stats: open tasks, completed tasks, saved notes
+- Daily focus guidance
+- Productivity insights and tips
+- Quick access to all features
 
-## Recommended free setup
+### 💬 Chat
+- Natural conversation with your AI assistant
+- Support for multiple languages (Hindi, English, etc.)
+- Multilingual providers: Ollama, OpenAI, Gemini, Claude
+- Message history with timestamps
 
-Install Ollama and pull a local model:
+### 📋 Tasks
+- Create and manage personal tasks
+- Priority levels: low, medium, high
+- Status tracking: todo, doing, done
+- Due dates and descriptions
+- Auto-detect tasks from chat
 
+### 📅 Planner
+- Optimal daily schedule template
+- Time blocking recommendations
+- Focus block scheduling
+- Productivity workflow guidance
+
+### 📝 Notes
+- Quick note capture
+- Organize thoughts and ideas
+- Personal reminders and insights
+- Auto-save to browser storage
+
+### 🤖 Automation
+- Daily summaries
+- Email drafting
+- Task planning from ideas
+- Meeting recaps
+- Research mode
+- Personal journal
+- Document generation
+- Knowledge base building
+
+### ⚙️ Settings
+- Language preferences (English, Hindi, both)
+- Theme selection
+- Notification settings
+- Provider configuration
+
+## 🚀 Quick Start
+
+### Free Local Setup (Recommended)
+
+**Install Ollama:**
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull llama3.1
 ```
 
-Then run the app:
-
+**Setup Project:**
 ```bash
 npm install
 npm run dev
 ```
 
-Open: http://localhost:3000
+**Open in browser:**
+```
+http://localhost:3000
+```
 
-## Optional providers
+### Optional Cloud Providers
 
-Create a `.env.local` file:
-
+Create `.env.local`:
 ```env
+# Ollama (Free, Local)
 AI_PROVIDER=ollama
 OLLAMA_MODEL=llama3.1
 
-# Optional cloud providers
-OPENAI_API_KEY=
+# OpenAI (Optional)
+OPENAI_API_KEY=sk_...
 OPENAI_MODEL=gpt-4o-mini
-GEMINI_API_KEY=
+
+# Google Gemini (Optional)
+GEMINI_API_KEY=...
 GEMINI_MODEL=gemini-1.5-flash
-ANTHROPIC_API_KEY=
+
+# Anthropic Claude (Optional)
+ANTHROPIC_API_KEY=...
 ANTHROPIC_MODEL=claude-3-haiku-20240307
 ```
 
-## Project structure
+## 📁 Project Structure
 
-- `app/page.tsx` – main UI
-- `app/api/chat/route.ts` – AI request handler
-- `components/assistant-dashboard.tsx` – chat UI logic
-- `lib/types.ts` – type definitions
-
-## Notes
-
-This app is designed for personal use and local testing. It is not a SaaS product and does not guarantee commercial-scale availability from free endpoints. For the strongest results, use a local model with Ollama or add your own API keys.
-
-## Launch commands
-
-```bash
-npm install
-npm run dev
+```
+├── app/
+│   ├── page.tsx                 # Main page
+│   ├── layout.tsx               # Root layout
+│   ├── globals.css              # Global styles
+│   └── api/
+│       └── chat/route.ts        # AI chat API endpoint
+├── components/
+│   └── secretary-dashboard.tsx  # Main UI component
+├── lib/
+│   └── types.ts                 # TypeScript types
+├── package.json                 # Dependencies
+└── README.md                    # This file
 ```
 
-## Production build
+## 🛠️ Tech Stack
+
+- **Frontend:** Next.js 14, React 18, TypeScript
+- **Backend:** Next.js API Routes
+- **AI Models:** Ollama (local), OpenAI, Gemini, Claude
+- **Storage:** Browser localStorage
+- **Styling:** Inline CSS with CSS variables
+
+## 💡 Usage Tips
+
+1. **Start with local Ollama** for completely free, private AI
+2. **Use quick actions** on the sidebar for common tasks
+3. **Switch providers** anytime from the dropdown
+4. **Auto-detect tasks** by mentioning "task", "todo", or "remember"
+5. **Multilingual support** — ask in Hindi or English
+6. **Data persists** in your browser automatically
+
+## 🔐 Privacy
+
+- Local Ollama mode: All data stays on your machine
+- Cloud providers: Data sent to respective AI services
+- No server-side storage of conversations
+- Browser localStorage for local state
+
+## 📚 Commands
 
 ```bash
+# Development
+npm run dev
+
+# Production build
 npm run build
 npm run start
+
+# Linting
+npm run lint
 ```
+
+## 🎯 Roadmap
+
+- [ ] Voice input/output
+- [ ] Email integration
+- [ ] Calendar sync
+- [ ] File uploads
+- [ ] Browser extensions
+- [ ] Mobile app
+- [ ] Team collaboration
+- [ ] Advanced analytics
+
+## ❓ FAQ
+
+**Q: Do I need an API key?**
+A: No! Ollama is completely free and local. API keys are optional for cloud providers.
+
+**Q: What happens to my data?**
+A: With Ollama, everything stays on your computer. With cloud providers, check their privacy policies.
+
+**Q: Can I use this offline?**
+A: Yes, with Ollama running locally.
+
+**Q: What languages does it support?**
+A: Hindi, English, and any language your AI model supports.
+
+## 📝 License
+
+Personal use only. Free to use and modify for yourself.
+
+## 🤝 Support
+
+For issues:
+1. Check Ollama is running: `ollama serve`
+2. Verify API keys in `.env.local`
+3. Check browser console for errors
+4. Restart dev server: `npm run dev`
+
+---
+
+**Made with ❤️ for personal productivity and AI-powered automation.**

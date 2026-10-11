@@ -1,5 +1,5 @@
-import { SecretaryDashboard } from '@/components/secretary-dashboard';
+import { WorkspaceApp } from '@/components/ai-workspace';
 
 export default function Home() {
-  return <SecretaryDashboard />;
+  return <WorkspaceApp />;
 }

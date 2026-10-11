@@ -1,0 +1,165 @@
+export const runtime = 'nodejs';
+
+import { NextRequest, NextResponse } from 'next/server';
+
+const DEFAULT_SYSTEM_PROMPT = `You are ARIA, a personal AI operating system for Harsh Pratap Singh.
+You are a practical, trustworthy, multilingual assistant.
+You help with planning, writing, research, analysis, debugging, automation, and personal productivity.
+Always be transparent about when a response is a demo, local, or third-party provider output.
+When no real provider is available, clearly say that a demo response is being used.`;
+
+export type ProviderKey = 'demo' | 'ollama' | 'openai' | 'gemini' | 'claude';
+
+export const PROVIDER_OPTIONS: Array<{ key: ProviderKey; label: string; description: string }> = [
+  { key: 'demo', label: 'Demo Mode', description: 'Safe sample mode for local testing and UI demo' },
+  { key: 'ollama', label: 'Ollama (Local)', description: 'Free local models when installed' },
+  { key: 'openai', label: 'OpenAI', description: 'Requires API key' },
+  { key: 'gemini', label: 'Gemini', description: 'Requires API key' },
+  { key: 'claude', label: 'Claude', description: 'Requires API key' }
+];
+
+export const DEFAULT_MODELS: Record<ProviderKey, string> = {
+  demo: 'demo-mode',
+  ollama: 'llama3.1',
+  openai: 'gpt-4o-mini',
+  gemini: 'gemini-1.5-flash',
+  claude: 'claude-3-haiku-20240307'
+};
+
+function generateDemoReply(messages: Array<{ role: string; content: string }>) {
+  const latest = messages[messages.length - 1]?.content || 'Hello';
+  const prompt = latest.toLowerCase();
+
+  if (prompt.includes('email') || prompt.includes('write')) {
+    return `Demo reply: Here is a professional draft:\n\nSubject: Project Update\n\nHi,\n\nI wanted to share a quick status update. This week, I focused on the highest-priority tasks and completed the key milestones needed for momentum. I am now moving into the next phase with the remaining follow-ups and refinements.\n\nBest,\nHarsh`;
+  }
+
+  if (prompt.includes('plan') || prompt.includes('schedule')) {
+    return `Demo reply: Here's a realistic plan:\n\n1. Review priorities for the day\n2. Block 90 minutes for the highest-impact task\n3. Handle urgent admin tasks\n4. Review progress and plan tomorrow\n5. Preserve time for rest and reflection`;
+  }
+
+  if (prompt.includes('summary')) {
+    return `Demo reply: In short, you need to focus on one outcome at a time, protect deep work, and reduce unnecessary context switching. That creates more progress with less stress.`;
+  }
+
+  return `Demo reply: I am running in safe demo mode. This is not a live provider response. For real AI output, select a configured model such as Ollama, OpenAI, Gemini, or Claude, and provide the required credentials.`;
+}
+
+async function callOllama(messages: Array<{ role: string; content: string }>) {
+  const model = process.env.OLLAMA_MODEL || DEFAULT_MODELS.ollama;
+
+  const response = await fetch('http://localhost:11434/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      messages,
+      stream: false
+    })
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Ollama is not available or the model is not installed. Install: ollama pull ${model}. Details: ${text}`);
+  }
+
+  const data = await response.json();
+  return data.message?.content || 'No response from local model.';
+}
+
+async function callOpenAI(messages: Array<{ role: string; content: string }>) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY is missing');
+
+  const OpenAI = (await import('openai')).default;
+  const openai = new OpenAI({ apiKey });
+
+  const completion = await openai.chat.completions.create({
+    model: process.env.OPENAI_MODEL || DEFAULT_MODELS.openai,
+    messages: [{ role: 'system', content: DEFAULT_SYSTEM_PROMPT }, ...messages],
+    temperature: 0.7,
+    max_tokens: 1500
+  });
+
+  return completion.choices[0]?.message?.content || 'No response from OpenAI';
+}
+
+async function callGemini(messages: Array<{ role: string; content: string }>) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY is missing');
+
+  const { GoogleGenerativeAI } = await import('@google/generative-ai');
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || DEFAULT_MODELS.gemini });
+
+  const prompt = `${DEFAULT_SYSTEM_PROMPT}\n\n${messages.map((m) => `${m.role}: ${m.content}`).join('\n')}`;
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  return response.text();
+}
+
+async function callClaude(messages: Array<{ role: string; content: string }>) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is missing');
+
+  const Anthropic = (await import('@anthropic-ai/sdk')).default;
+  const anthropic = new Anthropic({ apiKey });
+
+  const response = await anthropic.messages.create({
+    model: process.env.ANTHROPIC_MODEL || DEFAULT_MODELS.claude,
+    max_tokens: 1500,
+    system: DEFAULT_SYSTEM_PROMPT,
+    messages: messages.map((m) => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content
+    }))
+  });
+
+  const textBlocks = response.content.filter((item: any) => item.type === 'text');
+  return textBlocks.map((item: any) => item.text).join('\n');
+}
+
+async function callProvider(provider: ProviderKey, messages: Array<{ role: string; content: string }>) {
+  if (provider === 'demo') return generateDemoReply(messages);
+  if (provider === 'ollama') return callOllama(messages);
+  if (provider === 'openai') return callOpenAI(messages);
+  if (provider === 'gemini') return callGemini(messages);
+  if (provider === 'claude') return callClaude(messages);
+  throw new Error(`Unsupported provider: ${provider}`);
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { messages, provider = 'demo' } = body;
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json({ error: 'Messages are required.' }, { status: 400 });
+    }
+
+    const answer = await callProvider(provider, messages);
+
+    return NextResponse.json({
+      success: true,
+      provider,
+      model: DEFAULT_MODELS[provider] || 'demo-mode',
+      answer
+    });
+  } catch (error: any) {
+    console.error('Chat API error:', error);
+    return NextResponse.json({
+      success: false,
+      provider: 'error',
+      model: 'unavailable',
+      answer: `The selected provider is unavailable.\n\nReason: ${error?.message || 'Unknown error'}\n\nRecommended next step:\n- Use Demo Mode for UI testing\n- Or install Ollama and run: ollama pull llama3.1\n- Or configure OPENAI_API_KEY / GEMINI_API_KEY / ANTHROPIC_API_KEY in .env.local`,
+      error: error?.message || 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  return NextResponse.json({
+    providers: PROVIDER_OPTIONS,
+    note: 'Demo mode is safe, labelled, and never represented as a live provider response.'
+  });
+}

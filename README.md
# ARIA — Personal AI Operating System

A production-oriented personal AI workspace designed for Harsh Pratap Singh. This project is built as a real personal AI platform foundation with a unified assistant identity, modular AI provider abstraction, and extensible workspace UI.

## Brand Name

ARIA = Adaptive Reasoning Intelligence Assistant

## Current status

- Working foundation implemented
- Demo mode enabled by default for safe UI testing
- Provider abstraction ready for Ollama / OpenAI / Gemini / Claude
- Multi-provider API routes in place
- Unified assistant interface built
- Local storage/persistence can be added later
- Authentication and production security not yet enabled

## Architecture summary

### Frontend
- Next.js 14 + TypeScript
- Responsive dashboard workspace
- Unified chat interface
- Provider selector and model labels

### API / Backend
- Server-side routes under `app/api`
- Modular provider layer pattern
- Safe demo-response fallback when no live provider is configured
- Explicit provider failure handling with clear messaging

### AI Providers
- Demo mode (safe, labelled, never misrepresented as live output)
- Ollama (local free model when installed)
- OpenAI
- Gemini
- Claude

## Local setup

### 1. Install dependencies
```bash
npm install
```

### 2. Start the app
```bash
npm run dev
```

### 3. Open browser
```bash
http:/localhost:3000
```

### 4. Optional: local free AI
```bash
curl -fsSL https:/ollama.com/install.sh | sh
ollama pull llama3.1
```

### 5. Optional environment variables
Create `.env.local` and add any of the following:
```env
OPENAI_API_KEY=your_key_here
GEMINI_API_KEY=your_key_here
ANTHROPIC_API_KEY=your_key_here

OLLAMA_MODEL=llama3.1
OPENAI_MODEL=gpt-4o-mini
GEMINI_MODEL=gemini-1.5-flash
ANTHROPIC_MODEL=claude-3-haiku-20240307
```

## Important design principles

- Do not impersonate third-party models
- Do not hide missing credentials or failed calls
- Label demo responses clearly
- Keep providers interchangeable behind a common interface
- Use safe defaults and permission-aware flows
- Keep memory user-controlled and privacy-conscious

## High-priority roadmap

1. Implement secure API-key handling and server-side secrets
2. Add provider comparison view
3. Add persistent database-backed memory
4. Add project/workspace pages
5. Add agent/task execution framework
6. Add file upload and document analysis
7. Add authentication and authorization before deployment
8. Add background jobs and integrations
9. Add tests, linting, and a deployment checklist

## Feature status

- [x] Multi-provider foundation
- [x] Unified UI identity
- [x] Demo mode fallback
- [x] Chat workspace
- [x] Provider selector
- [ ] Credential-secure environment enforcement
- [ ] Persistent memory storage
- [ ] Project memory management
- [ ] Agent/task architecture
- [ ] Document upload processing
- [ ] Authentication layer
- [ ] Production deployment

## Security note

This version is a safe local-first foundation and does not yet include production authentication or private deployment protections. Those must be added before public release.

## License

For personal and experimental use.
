@@ -1,0 +1,278 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { DEFAULT_MODELS, PROVIDER_OPTIONS, type ProviderKey } from '@/lib/ai/providers';
+
+type Message = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  provider?: ProviderKey;
+};
+
+const defaultMessages: Message[] = [
+  {
+    id: 'welcome',
+    role: 'assistant',
+    content:
+      'Hello, I am ARIA — your personal AI operating system. I can help with planning, writing, research, and productivity. Demo mode is active by default so the interface works even without live API keys.',
+    provider: 'demo'
+  }
+];
+
+export function WorkspaceApp() {
+  const [provider, setProvider] = useState<ProviderKey>('demo');
+  const [model, setModel] = useState<string>(DEFAULT_MODELS.demo);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>(defaultMessages);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const providerSummary = useMemo(
+    () => `${provider.toUpperCase()} • ${model}`,
+    [provider, model]
+  );
+
+  const sendPrompt = async (promptText?: string) => {
+    const finalText = (promptText ?? input).trim();
+    if (!finalText || isLoading) return;
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: finalText,
+      provider
+    };
+
+    const conversation = [...messages, userMessage];
+    setMessages(conversation);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider,
+          model,
+          messages: conversation.map(({ role, content }) => ({ role, content }))
+        })
+      });
+
+      const data = await response.json();
+      const answer = data.answer || 'No response.';
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: answer,
+          provider: data.provider || provider
+        }
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: 'A request error occurred. Check provider health, keys, or select demo mode.',
+          provider: 'demo'
+        }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <main style={{ minHeight: '100vh', background: '#07111d', color: '#edf2ff', padding: 24 }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#94a3b8' }}>Personal AI Platform</div>
+            <h1 style={{ margin: '6px 0 0', fontSize: 38, lineHeight: 1.1 }}>ARIA</h1>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <select
+              value={provider}
+              onChange={(event) => {
+                const next = event.target.value as ProviderKey;
+                setProvider(next);
+                setModel(DEFAULT_MODELS[next]);
+              }}
+              style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(148,163,184,0.2)', background: '#0f172a', color: '#edf2ff' }}
+            >
+              {PROVIDER_OPTIONS.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+
+            <div style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(148,163,184,0.2)', background: '#0f172a', color: '#93c5fd' }}>
+              {providerSummary}
+            </div>
+          </div>
+        </header>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '280px minmax(0,1fr)', gap: 20 }}>
+          <aside style={{ background: 'rgba(15,23,42,0.85)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 22, padding: 18 }}>
+            <div style={{ fontSize: 12, letterSpacing: '0.12em', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 12 }}>Navigation</div>
+            {['Workspace', 'Chat', 'Memory', 'Projects', 'Agents', 'Settings'].map((item) => (
+              <button
+                key={item}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid rgba(148,163,184,0.14)',
+                  background: item === 'Workspace' ? 'rgba(124,58,237,0.18)' : 'rgba(15,23,42,0.7)',
+                  color: '#edf2ff',
+                  marginBottom: 8,
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+              >
+                {item}
+              </button>
+            ))}
+
+            <div style={{ marginTop: 18, borderTop: '1px solid rgba(148,163,184,0.14)', paddingTop: 18 }}>
+              <div style={{ fontSize: 12, letterSpacing: '0.12em', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10 }}>Quick Actions</div>
+              {['Plan my day', 'Write an email', 'Research topic', 'Create a task list', 'Summarize notes'].map((action) => (
+                <button
+                  key={action}
+                  onClick={() => sendPrompt(action)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border: '1px solid rgba(148,163,184,0.14)',
+                    background: 'rgba(15,23,42,0.6)',
+                    color: '#e2e8f0',
+                    marginBottom: 8,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          <section style={{ background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 22, padding: 18 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 14, marginBottom: 18 }}>
+              {[
+                { label: 'Tasks', value: '12', tone: '#a78bfa' },
+                { label: 'Projects', value: '4', tone: '#22c55e' },
+                { label: 'Memories', value: '18', tone: '#38bdf8' },
+                { label: 'Agents', value: '7', tone: '#fbbf24' }
+              ].map((stat) => (
+                <div key={stat.label} style={{ background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 16, padding: 16 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>{stat.label}</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: stat.tone }}>{stat.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 18 }}>
+              <div style={{ background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 18, padding: 18 }}>
+                <div style={{ fontSize: 12, letterSpacing: '0.12em', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10 }}>Conversation</div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 460, overflowY: 'auto', paddingRight: 6 }}>
+                  {messages.map((message) => (
+                    <div key={message.id} style={{ alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '82%' }}>
+                      <div
+                        style={{
+                          background: message.role === 'user' ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : '#111827',
+                          padding: '12px 14px',
+                          borderRadius: 16,
+                          border: '1px solid rgba(148,163,184,0.14)',
+                          whiteSpace: 'pre-wrap',
+                          lineHeight: 1.6
+                        }}
+                      >
+                        {message.content}
+                      </div>
+                    </div>
+                  ))}
+
+                  {isLoading && (
+                    <div style={{ alignSelf: 'flex-start', background: '#111827', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 16, padding: '10px 14px', color: '#cbd5e1' }}>
+                      Thinking…
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                  <textarea
+                    value={input}
+                    onChange={(event) => setInput(event.target.value)}
+                    rows={2}
+                    placeholder="Ask ARIA anything..."
+                    style={{
+                      flex: 1,
+                      resize: 'vertical',
+                      borderRadius: 12,
+                      border: '1px solid rgba(148,163,184,0.18)',
+                      background: '#0f172a',
+                      color: '#edf2ff',
+                      padding: '12px 14px',
+                      outline: 'none'
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        sendPrompt();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => sendPrompt()}
+                    disabled={isLoading || !input.trim()}
+                    style={{
+                      border: 'none',
+                      borderRadius: 12,
+                      background: isLoading || !input.trim() ? 'rgba(124,58,237,0.4)' : 'linear-gradient(135deg, #7c3aed, #22c55e)',
+                      color: '#fff',
+                      padding: '12px 18px',
+                      cursor: isLoading || !input.trim() ? 'not-allowed' : 'pointer',
+                      fontWeight: 700
+                    }}
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gap: 16 }}>
+                <div style={{ background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 18, padding: 18 }}>
+                  <div style={{ fontSize: 12, letterSpacing: '0.12em', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 12 }}>Projects</div>
+                  {['Personal Launch', 'AI Systems', 'Research Vault', 'Productivity'].map((project) => (
+                    <div key={project} style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(148,163,184,0.14)', background: '#0f172a', marginBottom: 8 }}>
+                      {project}
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 18, padding: 18 }}>
+                  <div style={{ fontSize: 12, letterSpacing: '0.12em', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 12 }}>Memory</div>
+                  {['Preferences saved', 'Daily tone updated', 'Project context indexed'].map((item) => (
+                    <div key={item} style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(148,163,184,0.14)', background: '#0f172a', marginBottom: 8 }}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+}
+

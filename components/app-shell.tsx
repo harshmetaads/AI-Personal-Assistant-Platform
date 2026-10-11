@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 
 const navigation = [
@@ -8,7 +9,7 @@ const navigation = [
   { href: '/agents', label: 'Agents' }
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div style={{ minHeight: '100vh', background: '#07111d', color: '#edf2ff' }}>
       <header style={{ position: 'sticky', top: 0, zIndex: 10, backdropFilter: 'blur(10px)', background: 'rgba(7,17,29,0.8)', borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
@@ -32,3 +33,5 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+export default AppShell;

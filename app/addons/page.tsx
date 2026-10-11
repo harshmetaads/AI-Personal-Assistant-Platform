@@ -1,15 +1,16 @@
-import { AgentWorkflowPanel } from '@/components/agent-workflow-panel';
+import AppShell from '@/components/app-shell';
 import { BrowserAutomationPanel } from '@/components/browser-automation-panel';
 import { DocumentUploadPanel } from '@/components/document-upload-panel';
 
-export default function WorkspaceAddons() {
+export default function AddonsPage() {
   return (
-    <main style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 18px 50px', color: '#edf2ff' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
-        <DocumentUploadPanel />
-        <AgentWorkflowPanel />
-        <BrowserAutomationPanel />
+    <AppShell>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '26px 18px 50px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
+          <DocumentUploadPanel />
+          <BrowserAutomationPanel />
+        </div>
       </div>
-    </main>
+    </AppShell>
   );
 }

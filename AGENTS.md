@@ -15,9 +15,13 @@ Web UI on http://localhost:3000. `web` is `node:22` running the cloned source wi
 ## Non-obvious setup facts
 
 - **Local model, no keys needed.** The default provider is `ollama`, backed by the
-  `ollama` compose service. `ollama-pull` is a one-shot service that pulls
-  `llama3.2:1b` (small/CPU-friendly; the sandbox has no GPU). Change the model in
-  `.env.base44-defaults` (`OLLAMA_MODEL`) — the pull service must be updated to match.
+  `ollama` compose service, which starts the server and then pulls `llama3.2:1b`
+  (small/CPU-friendly; the sandbox has no GPU) in the same container — a dedicated
+  one-shot pull container would keep showing up as an exited service. The pull is a
+  no-op once the model is in the `ollama-models` volume. To change the model, update
+  both `.env.base44-defaults` (`OLLAMA_MODEL`) and the `ollama pull` line in the
+  compose command, and remove the stale entry from the volume (`ollama rm <model>` in
+  the `ollama` service) if you want the disk back.
 - `app/api/chat/route.ts` reads `OLLAMA_BASE_URL` (falls back to
   `http://localhost:11434`). Compose sets it to `http://ollama:11434`; that is why the
   app can talk to the Ollama container instead of "localhost".

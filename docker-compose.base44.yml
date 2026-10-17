@@ -8,6 +8,7 @@
 #   * OLLAMA_BASE_URL points the app at the compose "ollama" service instead of
 #     localhost (the code falls back to http://localhost:11434 when unset).
 #   * OLLAMA_MODEL uses a small CPU-friendly model so replies stay responsive here.
+#     Keep the model name in the `ollama` service command below in sync with it.
 #   * BASE44_PREVIEW_MODE is passed through as a bare flag (set by the platform to 1).
 # These only affect this file; nothing in shared app config is changed by them.
 
@@ -48,9 +49,20 @@ services:
       retries: 10
       start_period: 90s
 
-  # Free local model backend used by the default provider.
+  # Free local model backend used by the default provider. The model download runs
+  # here, once, alongside the server process: a dedicated one-shot container would
+  # sit in an "exited" state, and `ollama pull` is a no-op when the model is already
+  # in the volume. The server is reachable while the pull runs.
   ollama:
     image: ollama/ollama:latest
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        /bin/ollama serve &
+        server_pid=$$!
+        until /bin/ollama list >/dev/null 2>&1; do sleep 1; done
+        /bin/ollama pull llama3.2:1b
+        wait $$server_pid
     volumes:
       - ollama-models:/root/.ollama
     restart: on-failure
@@ -60,20 +72,6 @@ services:
       timeout: 10s
       retries: 12
       start_period: 20s
-
-  # One-shot: make sure the model the app asks for is present before first chat.
-  ollama-pull:
-    image: ollama/ollama:latest
-    entrypoint: ["/bin/ollama"]
-    command: ["pull", "llama3.2:1b"]
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
-    volumes:
-      - ollama-models:/root/.ollama
-    depends_on:
-      ollama:
-        condition: service_healthy
-    restart: "no"
 
 volumes:
   node_modules:

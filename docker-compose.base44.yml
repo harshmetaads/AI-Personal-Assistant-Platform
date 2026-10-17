@@ -1,0 +1,81 @@
+# Base44 sandbox/dev environment.
+# Runs the Next.js app straight from the cloned source (live reload) plus a local
+# Ollama server so the "Local Free (Ollama)" provider works without any API keys.
+#
+#   docker compose -f docker-compose.base44.yml up -d --build
+#
+# Sandbox overrides (see AGENTS.md):
+#   * OLLAMA_BASE_URL points the app at the compose "ollama" service instead of
+#     localhost (the code falls back to http://localhost:11434 when unset).
+#   * OLLAMA_MODEL uses a small CPU-friendly model so replies stay responsive here.
+#   * BASE44_PREVIEW_MODE is passed through as a bare flag (set by the platform to 1).
+# These only affect this file; nothing in shared app config is changed by them.
+
+services:
+  web:
+    image: node:22
+    working_dir: /app
+    command: ["sh", "-ec", "CI=true npm install && exec npm run dev -- -H 0.0.0.0 -p 3000"]
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      - WATCHPACK_POLLING=true
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - BASE44_PREVIEW_MODE
+    # Real secrets come from the platform-managed file and must be listed LAST
+    # so they override the committed placeholders.
+    env_file:
+      - ./.env.base44-defaults
+      - /run/base44/app.env
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - next_cache:/app/.next
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  # Free local model backend used by the default provider.
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "/bin/ollama", "list"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+
+  # One-shot: make sure the model the app asks for is present before first chat.
+  ollama-pull:
+    image: ollama/ollama:latest
+    entrypoint: ["/bin/ollama"]
+    command: ["pull", "llama3.2:1b"]
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    volumes:
+      - ollama-models:/root/.ollama
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  node_modules:
+  next_cache:
+  ollama-models:

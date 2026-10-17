@@ -1,0 +1,22 @@
+{
+  "previewPort": 3000,
+  "healthPath": "/api/health",
+  "startCommand": "docker compose -f docker-compose.base44.yml up -d",
+  "secrets": [
+    {
+      "name": "OPENAI_API_KEY",
+      "description": "Optional. OpenAI API key for the OpenAI provider (platform.openai.com/api-keys). Not needed for the default local Ollama provider.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "GEMINI_API_KEY",
+      "description": "Optional. Google Gemini API key for the Gemini provider (aistudio.google.com/app/apikey). Not needed for the default local Ollama provider.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "ANTHROPIC_API_KEY",
+      "description": "Optional. Anthropic Claude API key for the Claude provider (console.anthropic.com/settings/keys). Not needed for the default local Ollama provider.",
+      "requiredAtBoot": false
+    }
+  ]
+}

@@ -19,7 +19,8 @@ function getProviderConfig(provider: string) {
 async function callOllama(messages: Array<{ role: string; content: string }>) {
   const model = process.env.OLLAMA_MODEL || 'llama3.1';
 
-  const response = await fetch('http://localhost:11434/api/chat', {
+  const baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+  const response = await fetch(`${baseUrl}/api/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
